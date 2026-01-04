@@ -1,0 +1,87 @@
+version: 1
+tenant: flowcore-saas
+dataCore:
+  name: calendrun
+  deleteProtection: true
+  isPublic: false
+  description: "CalendRun application event data"
+  flowTypes:
+    run.0:
+      description: "Run performance events"
+      eventTypes:
+        run.logged.0:
+          description: "Run performance recorded"
+        run.updated.0:
+          description: "Run performance updated"
+        run.deleted.0:
+          description: "Run performance deleted"
+    challenge.0:
+      description: "Challenge instance events"
+      eventTypes:
+        challenge.started.0:
+          description: "Challenge instance created"
+        challenge.updated.0:
+          description: "Challenge instance updated"
+        challenge.completed.0:
+          description: "Challenge instance completed"
+    challenge.template.0:
+      description: "Challenge template events"
+      eventTypes:
+        challenge.template.created.0:
+          description: "Challenge template created"
+        challenge.template.updated.0:
+          description: "Challenge template updated"
+        challenge.template.deleted.0:
+          description: "Challenge template deleted"
+    club.0:
+      description: "Club and membership events"
+      eventTypes:
+        club.created.0:
+          description: "Club created"
+        club.updated.0:
+          description: "Club updated"
+        club.member.joined.0:
+          description: "Club membership created"
+        club.member.left.0:
+          description: "Club membership deleted"
+    subscription.0:
+      description: "Subscription events (from Stripe)"
+      eventTypes:
+        subscription.created.0:
+          description: "Subscription created (from Stripe)"
+        subscription.updated.0:
+          description: "Subscription updated (from Stripe)"
+        subscription.deleted.0:
+          description: "Subscription deleted (from Stripe)"
+    discount.code.0:
+      description: "Discount code events"
+      eventTypes:
+        discount.code.created.0:
+          description: "Discount code created"
+        discount.code.updated.0:
+          description: "Discount code updated"
+        discount.code.deleted.0:
+          description: "Discount code deleted"
+        discount.code.redeemed.0:
+          description: "Discount code redeemed"
+    discount.bundle.0:
+      description: "Discount bundle events"
+      eventTypes:
+        discount.bundle.purchased.0:
+          description: "Discount bundle purchased"
+        discount.bundle.updated.0:
+          description: "Discount bundle updated"
+        discount.bundle.deleted.0:
+          description: "Discount bundle deleted"
+    user.0:
+      description: "User events"
+      eventTypes:
+        user.created.0:
+          description: "User created"
+        user.updated.0:
+          description: "User updated"
+    user.settings.0:
+      description: "User settings events"
+      eventTypes:
+        user.settings.updated.0:
+          description: "User settings updated"

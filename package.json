@@ -1,0 +1,29 @@
+{
+  "name": "calendrun-backend",
+  "version": "1.0.2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "build": "tsc",
+    "start": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "migrate:usable-to-flowcore": "bun run scripts/migrate-usable-to-flowcore.ts",
+    "migrate:add-user-table": "bun run scripts/add-user-table.ts",
+    "migrate:ingest-users": "bun run scripts/ingest-existing-users.ts",
+    "process:templates": "bun run scripts/process-challenge-templates.ts"
+  },
+  "dependencies": {
+    "@flowcore/hono-api": "^0.3.0",
+    "@flowcore/sdk": "^1.64.3",
+    "hono": "^4.0.0",
+    "postgres": "^3.4.0",
+    "zod": "^3.25.63",
+    "stripe": "^20.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/pg": "^8.11.10",
+    "typescript": "^5"
+  }
+}
