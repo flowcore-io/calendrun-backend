@@ -71,6 +71,7 @@ export async function handleRunLogged(payload: unknown, eventId: string) {
       ${validated.changeLog ? JSON.stringify(validated.changeLog) : null},
       ${JSON.stringify(validated)}
     )
+    ON CONFLICT (flowcore_event_id) DO NOTHING
   `;
 }
 
@@ -163,6 +164,7 @@ export async function handleRunUpdated(payload: unknown, eventId: string) {
         ${perf.change_log ?? (validated.changeLog ? JSON.stringify(validated.changeLog) : null)},
         ${JSON.stringify(validated)}
       )
+      ON CONFLICT (flowcore_event_id) DO NOTHING
     `;
   }
 }
@@ -216,6 +218,7 @@ export async function handleRunDeleted(payload: unknown, eventId: string) {
         ${perf.change_log},
         ${JSON.stringify(validated)}
       )
+      ON CONFLICT (flowcore_event_id) DO NOTHING
     `;
   } else {
     // Log deletion event even if performance didn't exist (for audit trail)
@@ -240,6 +243,7 @@ export async function handleRunDeleted(payload: unknown, eventId: string) {
         NULL,
         ${JSON.stringify(validated)}
       )
+      ON CONFLICT (flowcore_event_id) DO NOTHING
     `;
   }
 }

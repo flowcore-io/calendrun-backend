@@ -148,8 +148,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
 
 -- Performance Log table (audit log for all performance events)
 CREATE TABLE IF NOT EXISTS performance_log (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  flowcore_event_id UUID NOT NULL,
+  flowcore_event_id UUID PRIMARY KEY,
   event_type VARCHAR(50) NOT NULL CHECK (event_type IN ('run.logged.0', 'run.updated.0', 'run.deleted.0')),
   performance_id UUID NOT NULL,
   instance_id UUID NOT NULL,
