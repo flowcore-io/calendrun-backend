@@ -174,10 +174,10 @@ clubsRoute.get("/:id/runs", async (c) => {
       query = pool`${query} AND p.status = ${status}`;
     }
 
-    // Order by most recent runs first, then by user
+    // Order by most recently recorded/created runs first
     query = pool`
       ${query}
-      ORDER BY p.run_date DESC, p.created_at DESC
+      ORDER BY p.created_at DESC, p.run_date DESC
       LIMIT ${limit}
     `;
 
