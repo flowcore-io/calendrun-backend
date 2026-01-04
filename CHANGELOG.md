@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/flowcore-io/calendrun-backend/compare/v1.2.0...v1.2.1) (2026-01-04)
+
+
+### Bug Fixes
+
+* update health route to use dynamic version from package.json ([a8fa4a2](https://github.com/flowcore-io/calendrun-backend/commit/a8fa4a2d44d9811ad9810580434bc5f194d05f88))
+
 ## [1.1.1](https://github.com/flowcore-io/calendrun/compare/v1.1.0...v1.1.1) (2026-01-04)
 
 
