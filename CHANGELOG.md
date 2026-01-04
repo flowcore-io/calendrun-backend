@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0 (2026-01-04)
+
+
+### Bug Fixes
+
+* Add bun.lock and mcp.json files for dependency management and local server configuration ([dacd671](https://github.com/flowcore-io/calendrun-backend/commit/dacd671aa89f011e9c7868dfc34d52b51fccb70e))
+* Add GitHub Actions deployment instructions to README ([9ad217c](https://github.com/flowcore-io/calendrun-backend/commit/9ad217c59dbfd3769a5e03ed6f7fe1760da10c48))
+
 ## [1.1.1](https://github.com/flowcore-io/calendrun/compare/v1.1.0...v1.1.1) (2026-01-04)
 
 
