@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.2](https://github.com/flowcore-io/calendrun-backend/compare/v1.2.1...v1.2.2) (2026-01-04)
+
+
+### Bug Fixes
+
+* update performance_log table schema and add conflict handling in run handlers ([4b13de1](https://github.com/flowcore-io/calendrun-backend/commit/4b13de1ac78318462b1a416abeccc83b52c882fd))
+
 ## [1.2.1](https://github.com/flowcore-io/calendrun-backend/compare/v1.2.0...v1.2.1) (2026-01-04)
 
 
