@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1](https://github.com/flowcore-io/calendrun-backend/compare/v1.3.0...v1.3.1) (2026-01-04)
+
+
+### Bug Fixes
+
+* adjust order of run records in query for clarity ([c396d06](https://github.com/flowcore-io/calendrun-backend/commit/c396d062ddc10bfcd4499ef44c848ddb2da93beb))
+* update polling interval and enhance performance queries ([de9b446](https://github.com/flowcore-io/calendrun-backend/commit/de9b44699e548a0bfabb8e9b01e4d4af023faf22))
+
 ## [1.3.0](https://github.com/flowcore-io/calendrun-backend/compare/v1.2.2...v1.3.0) (2026-01-04)
 
 
