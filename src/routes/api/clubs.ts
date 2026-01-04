@@ -72,19 +72,24 @@ clubsRoute.get("/:id/leaderboard", async (c) => {
 
     // Get leaderboard: sum of distances by user for the specified month
     // Join with user table to get full names
+    // Deduplicate performance records by (user_id, run_date) before aggregating
     const leaderboard = await pool`
       SELECT 
         cm.user_id,
         COALESCE(u.name, cm.user_name) as user_name,
-        SUM(p.distance_km) as total_distance_km,
-        COUNT(p.id) as run_count
+        SUM(deduped_p.distance_km) as total_distance_km,
+        COUNT(deduped_p.id) as run_count
       FROM club_membership cm
       LEFT JOIN "user" u ON u.id = cm.user_id
       LEFT JOIN challenge_instance ci ON ci.user_id = cm.user_id
-      LEFT JOIN performance p ON p.instance_id = ci.id
-        AND EXTRACT(YEAR FROM p.run_date) = ${year}::int
-        AND EXTRACT(MONTH FROM p.run_date) = ${month}::int
-        AND p.status = 'completed'
+      LEFT JOIN (
+        SELECT DISTINCT ON (user_id, run_date) *
+        FROM performance
+        WHERE EXTRACT(YEAR FROM run_date) = ${year}::int
+          AND EXTRACT(MONTH FROM run_date) = ${month}::int
+          AND status = 'completed'
+        ORDER BY user_id, run_date DESC, updated_at DESC
+      ) deduped_p ON deduped_p.instance_id = ci.id
       WHERE cm.club_id = ${clubId}
       GROUP BY cm.user_id, u.name, cm.user_name
       ORDER BY total_distance_km DESC NULLS LAST
@@ -158,28 +163,36 @@ clubsRoute.get("/:id/runs", async (c) => {
 
     // Build query: join club_membership with performance table
     // Get runs for all members of the club, ordered by most recent first
-    let query = pool`
-      SELECT 
-        p.*,
-        cm.user_name as member_name,
-        cm.role as member_role
-      FROM club_membership cm
-      INNER JOIN performance p ON p.user_id = cm.user_id
-      WHERE cm.club_id = ${clubId}
-        AND p.status != 'deleted'
-    `;
+    // Deduplicate by (user_id, run_date) keeping the most recent record
+    let whereConditions = `cm.club_id = $1 AND p.status != 'deleted'`;
+    const values: unknown[] = [clubId];
+    let paramIndex = 2;
 
     // Add status filter if provided
     if (status) {
-      query = pool`${query} AND p.status = ${status}`;
+      whereConditions += ` AND p.status = $${paramIndex}`;
+      values.push(status);
+      paramIndex++;
     }
 
-    // Order by most recently recorded/created runs first
-    query = pool`
-      ${query}
-      ORDER BY p.created_at DESC, p.run_date DESC
-      LIMIT ${limit}
+    // Use subquery to deduplicate, then order final results by most recent
+    const sql = `
+      SELECT * FROM (
+        SELECT DISTINCT ON (p.user_id, p.run_date)
+          p.*,
+          cm.user_name as member_name,
+          cm.role as member_role
+        FROM club_membership cm
+        INNER JOIN performance p ON p.user_id = cm.user_id
+        WHERE ${whereConditions}
+        ORDER BY p.user_id, p.run_date DESC, p.updated_at DESC
+      ) AS deduplicated_runs
+      ORDER BY updated_at DESC, run_date DESC
+      LIMIT $${paramIndex}
     `;
+    values.push(limit);
+
+    const query = pool.unsafe(sql, values as never[]);
 
     const runs = await query;
 

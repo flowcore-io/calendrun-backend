@@ -11,24 +11,54 @@ runsRoute.get("/", async (c) => {
     const runDate = c.req.query("runDate");
     const status = c.req.query("status");
 
-    let query = pool`SELECT * FROM performance WHERE 1=1`;
+    // Build WHERE conditions
+    const conditions: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
 
     if (instanceId) {
-      query = pool`${query} AND instance_id = ${instanceId}`;
+      conditions.push(`instance_id = $${paramIndex}`);
+      values.push(instanceId);
+      paramIndex++;
     }
     if (userId) {
-      query = pool`${query} AND user_id = ${userId}`;
+      conditions.push(`user_id = $${paramIndex}`);
+      values.push(userId);
+      paramIndex++;
     }
     if (runDate) {
-      query = pool`${query} AND run_date = ${runDate}::date`;
+      conditions.push(`run_date = $${paramIndex}::date`);
+      values.push(runDate);
+      paramIndex++;
     }
     if (status) {
-      query = pool`${query} AND status = ${status}`;
+      conditions.push(`status = $${paramIndex}`);
+      values.push(status);
+      paramIndex++;
     }
 
-    query = pool`${query} ORDER BY run_date DESC, created_at DESC`;
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-    const runs = await query;
+    // Deduplicate by (user_id, run_date) keeping the most recent record
+    // If instanceId is provided, deduplicate by (instance_id, user_id, run_date)
+    let sql: string;
+    if (instanceId) {
+      sql = `
+        SELECT DISTINCT ON (instance_id, user_id, run_date) *
+        FROM performance
+        ${whereClause}
+        ORDER BY instance_id, user_id, run_date DESC, updated_at DESC
+      `;
+    } else {
+      sql = `
+        SELECT DISTINCT ON (user_id, run_date) *
+        FROM performance
+        ${whereClause}
+        ORDER BY user_id, run_date DESC, updated_at DESC
+      `;
+    }
+
+    const runs = await pool.unsafe(sql, values as never[]);
     return c.json(runs);
   } catch (error) {
     console.error("Error fetching runs:", error);

@@ -8,7 +8,7 @@ const envSchema = z.object({
   FLOWCORE_DATA_CORE: z.string().default("calendrun"),
   FLOWCORE_API_KEY: z.string(),
   BACKEND_API_KEY: z.string().optional(),
-  POLL_INTERVAL: z.string().default("5").transform(Number),
+  POLL_INTERVAL: z.string().default("30").transform(Number),
   PROCESS_BACKLOG_ON_STARTUP: z
     .string()
     .default("true")

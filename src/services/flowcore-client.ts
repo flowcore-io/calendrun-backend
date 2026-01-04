@@ -95,10 +95,8 @@ export async function fetchEvents(
 
     return result;
   } catch (error) {
-    console.error(
-      `❌ Failed to fetch events for ${flowTypeName}/${eventTypeName} at ${timeBucket}:`,
-      error
-    );
+    // Don't log here - let the caller handle and log errors appropriately
+    // This allows event-streamer to silently skip unauthorized errors
     throw error;
   }
 }

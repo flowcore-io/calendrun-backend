@@ -11,6 +11,11 @@ import {
 const processedEventIds = new Set<string>();
 const MAX_PROCESSED_EVENTS = 10000;
 
+// Track buckets that were processed with no new events (to skip reprocessing)
+// Map: bucket -> timestamp of last check with no events
+const emptyBuckets = new Map<string, number>();
+const EMPTY_BUCKET_TTL = 5 * 60 * 1000; // Skip empty buckets for 5 minutes
+
 /**
  * Clear oldest half of processed events when limit reached
  */
@@ -27,15 +32,39 @@ function cleanupProcessedEvents() {
 }
 
 /**
- * Process events for a specific flow type and event type
+ * Clean up old empty bucket entries
  */
-async function processEventType(flowTypeName: string, eventTypeName: string, timeBucket: string) {
+function cleanupEmptyBuckets() {
+  const now = Date.now();
+  for (const [bucket, timestamp] of emptyBuckets.entries()) {
+    if (now - timestamp > EMPTY_BUCKET_TTL) {
+      emptyBuckets.delete(bucket);
+    }
+  }
+}
+
+/**
+ * Process events for a specific flow type and event type
+ * Returns true if any events were processed, false otherwise
+ */
+async function processEventType(
+  flowTypeName: string,
+  eventTypeName: string,
+  timeBucket: string
+): Promise<boolean> {
   // Validate timeBucket is a non-empty string
   if (!timeBucket || typeof timeBucket !== "string") {
     console.warn(
       `⚠️  Skipping ${flowTypeName}/${eventTypeName} - invalid timeBucket: ${timeBucket}`
     );
-    return;
+    return false;
+  }
+
+  // Check if this event type/bucket combination was recently empty (skip if so)
+  const bucketKey = `${flowTypeName}/${eventTypeName}/${timeBucket}`;
+  const emptyTimestamp = emptyBuckets.get(bucketKey);
+  if (emptyTimestamp && Date.now() - emptyTimestamp < EMPTY_BUCKET_TTL) {
+    return false; // Skip recently empty bucket
   }
 
   let cursor: string | undefined;
@@ -112,19 +141,29 @@ async function processEventType(flowTypeName: string, eventTypeName: string, tim
 
       cursor = nextCursor;
     } catch (error) {
+      // Extract error details (SDK may nest status/code in body property)
+      const errorObj = error as {
+        status?: number;
+        code?: string;
+        body?: { status?: number; code?: string };
+      };
+      const errorStatus = errorObj.status ?? errorObj.body?.status;
+      const errorCode = errorObj.code ?? errorObj.body?.code;
+      const errorString = String(error);
+
       // Check if it's a 401 Unauthorized error (likely missing event type or permissions)
       const isUnauthorized =
-        (error as { status?: number }).status === 401 ||
-        (error as { code?: string }).code === "UNAUTHORIZED" ||
-        String(error).includes("401") ||
-        String(error).includes("UNAUTHORIZED");
+        errorStatus === 401 ||
+        errorCode === "UNAUTHORIZED" ||
+        errorString.includes("401") ||
+        errorString.includes("UNAUTHORIZED");
 
       // Check if it's a 422 Unprocessable Content error (likely invalid parameters)
       const isUnprocessable =
-        (error as { status?: number }).status === 422 ||
-        (error as { code?: string }).code === "UNPROCESSABLE_CONTENT" ||
-        String(error).includes("422") ||
-        String(error).includes("UNPROCESSABLE");
+        errorStatus === 422 ||
+        errorCode === "UNPROCESSABLE_CONTENT" ||
+        errorString.includes("422") ||
+        errorString.includes("UNPROCESSABLE");
 
       if (isUnauthorized) {
         // Silently skip - event type may not exist or API key lacks permissions
@@ -134,7 +173,7 @@ async function processEventType(flowTypeName: string, eventTypeName: string, tim
             `ℹ️  Skipping ${flowTypeName}/${eventTypeName} at ${timeBucket} (unauthorized - may not exist or lack permissions)`
           );
         }
-        return; // Exit early, don't break (which would retry)
+        return false; // Exit early, don't break (which would retry)
       }
 
       if (isUnprocessable) {
@@ -145,7 +184,7 @@ async function processEventType(flowTypeName: string, eventTypeName: string, tim
             `⚠️  Skipping ${flowTypeName}/${eventTypeName} at ${timeBucket} (unprocessable - invalid parameters, likely missing timeBucket)`
           );
         }
-        return; // Exit early, don't break (which would retry)
+        return false; // Exit early, don't break (which would retry)
       }
 
       // For other errors, log and break
@@ -157,22 +196,40 @@ async function processEventType(flowTypeName: string, eventTypeName: string, tim
     }
   }
 
-  if (totalProcessed > 0 || totalSkipped > 0) {
+  // Only log if we processed events or if this is the first check for this bucket
+  const wasEmpty = emptyBuckets.has(bucketKey);
+  
+  if (totalProcessed > 0) {
     console.log(
       `✅ Processed ${flowTypeName}/${eventTypeName} at ${timeBucket}: ${totalProcessed} processed, ${totalSkipped} skipped`
     );
+    // Remove from empty buckets if we found events
+    emptyBuckets.delete(bucketKey);
+  } else if (totalSkipped > 0 && !wasEmpty) {
+    // Only log skipped events on first empty check
+    console.log(
+      `ℹ️  No new events for ${flowTypeName}/${eventTypeName} at ${timeBucket} (${totalSkipped} already processed)`
+    );
+    emptyBuckets.set(bucketKey, Date.now());
   }
+  
+  cleanupEmptyBuckets();
+  
+  return totalProcessed > 0;
 }
 
 /**
  * Process all event types for a time bucket
+ * Returns true if any events were processed, false otherwise
  */
-async function processTimeBucket(timeBucket: string) {
+async function processTimeBucket(timeBucket: string): Promise<boolean> {
   // Validate timeBucket is a non-empty string
   if (!timeBucket || typeof timeBucket !== "string") {
     console.warn(`⚠️  Skipping processTimeBucket - invalid timeBucket: ${timeBucket}`);
-    return;
+    return false;
   }
+  
+  let hasNewEvents = false;
   const eventTypes = [
     // Run events
     { flowType: "run.0", eventType: "run.logged.0" },
@@ -221,8 +278,13 @@ async function processTimeBucket(timeBucket: string) {
   ];
 
   for (const { flowType, eventType } of eventTypes) {
-    await processEventType(flowType, eventType, timeBucket);
+    const processed = await processEventType(flowType, eventType, timeBucket);
+    if (processed) {
+      hasNewEvents = true;
+    }
   }
+  
+  return hasNewEvents;
 }
 
 /**
@@ -316,15 +378,20 @@ export async function startPolling() {
       const currentBucket = getCurrentTimeBucket();
       const previousBucket = getPreviousTimeBucket();
 
-      // If bucket changed, process previous bucket completely
+      // If bucket changed, process previous bucket completely (final check)
       if (lastProcessedBucket && lastProcessedBucket !== currentBucket) {
-        console.log(`📦 Bucket changed, processing previous bucket: ${lastProcessedBucket}`);
+        console.log(`📦 Bucket changed from ${lastProcessedBucket} to ${currentBucket}, finalizing previous bucket`);
         await processTimeBucket(lastProcessedBucket);
       }
 
-      // Process current bucket + previous hour (catches late-indexed events)
-      await processTimeBucket(currentBucket);
-      await processTimeBucket(previousBucket);
+      // Process current bucket (always check for new events)
+      const currentHasEvents = await processTimeBucket(currentBucket);
+      
+      // Only process previous bucket if current bucket has new events or bucket just changed
+      // This reduces unnecessary API calls when nothing is happening
+      if (currentHasEvents || (lastProcessedBucket && lastProcessedBucket !== currentBucket)) {
+        await processTimeBucket(previousBucket);
+      }
 
       lastProcessedBucket = currentBucket;
     } catch (error) {

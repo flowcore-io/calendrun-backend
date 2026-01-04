@@ -2,9 +2,10 @@ import { pool } from "../pool";
 
 export async function getPerformancesByInstance(instanceId: string) {
   return pool`
-    SELECT * FROM performance
+    SELECT DISTINCT ON (user_id, run_date) *
+    FROM performance
     WHERE instance_id = ${instanceId}
-    ORDER BY run_date DESC
+    ORDER BY user_id, run_date DESC, updated_at DESC
   `;
 }
 
