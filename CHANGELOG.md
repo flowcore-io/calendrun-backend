@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/flowcore-io/calendrun-backend/compare/v1.2.2...v1.3.0) (2026-01-04)
+
+
+### Features
+
+* add endpoint to fetch recent run recordings for club members with optional status filter ([3074731](https://github.com/flowcore-io/calendrun-backend/commit/307473187ea988b5bb6ac7035d078024a6bc7568))
+
 ## [1.2.2](https://github.com/flowcore-io/calendrun-backend/compare/v1.2.1...v1.2.2) (2026-01-04)
 
 
