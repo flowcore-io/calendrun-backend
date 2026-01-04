@@ -132,3 +132,64 @@ clubsRoute.get("/:id/members/:userId", async (c) => {
     return c.json({ error: "Failed to fetch membership" }, 500);
   }
 });
+
+// GET /api/clubs/:id/runs
+// Get the most recent run recordings for all runners in a club
+clubsRoute.get("/:id/runs", async (c) => {
+  try {
+    const clubId = c.req.param("id");
+    const limit = c.req.query("limit")
+      ? Number.parseInt(c.req.query("limit") ?? "50")
+      : 50;
+    const status = c.req.query("status"); // Optional filter by status
+
+    // Validate limit
+    if (limit < 1 || limit > 500) {
+      return c.json({ error: "limit must be between 1 and 500" }, 400);
+    }
+
+    // Verify club exists
+    const clubExists = await pool`
+      SELECT id FROM club WHERE id = ${clubId} LIMIT 1
+    `;
+    if (clubExists.length === 0) {
+      return c.json({ error: "Club not found" }, 404);
+    }
+
+    // Build query: join club_membership with performance table
+    // Get runs for all members of the club, ordered by most recent first
+    let query = pool`
+      SELECT 
+        p.*,
+        cm.user_name as member_name,
+        cm.role as member_role
+      FROM club_membership cm
+      INNER JOIN performance p ON p.user_id = cm.user_id
+      WHERE cm.club_id = ${clubId}
+        AND p.status != 'deleted'
+    `;
+
+    // Add status filter if provided
+    if (status) {
+      query = pool`${query} AND p.status = ${status}`;
+    }
+
+    // Order by most recent runs first, then by user
+    query = pool`
+      ${query}
+      ORDER BY p.run_date DESC, p.created_at DESC
+      LIMIT ${limit}
+    `;
+
+    const runs = await query;
+
+    return c.json({
+      runs,
+      count: runs.length,
+      limit,
+    });
+  } catch (error) {
+    console.error("Error fetching club runs:", error);
+    return c.json({ error: "Failed to fetch club runs" }, 500);
+  }
+});
