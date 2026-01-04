@@ -103,6 +103,36 @@ The `flowcore.deployment.json` file references:
 - **Tag Path**: `flowcore-microservices.deployments.calendrunBackend.deployment.tag`
 - **Repository**: `flowcore-io/public-customer-sites-manifests`
 
+### GitHub Actions Deployment
+
+Deployment is automated via GitHub Actions. The workflow (`.github/workflows/build.yml`) is triggered when a GitHub release is published and performs the following steps:
+
+1. **Extract Information** (`extract_info` job):
+   - Extracts the version from the release tag (removes 'v' prefix if present)
+   - Reads the package name from `package.json`
+   - Reads deployment configuration from `flowcore.deployment.json`
+
+2. **Build and Push Docker Image** (`build_docker` job):
+   - Authenticates with AWS using OIDC (IAM role: `ECRGithubManager`)
+   - Logs into Amazon ECR (Elastic Container Registry)
+   - Creates the ECR repository if it doesn't exist
+   - Builds the Docker image using the `Dockerfile`
+   - Tags the image with both the version tag and `latest`
+   - Pushes both tags to ECR
+
+3. **Update Deployment Manifest** (`deploy_manifest` job):
+   - Checks out the deployment repository (`flowcore-io/public-customer-sites-manifests`)
+   - Uses `yq` to update the image tag in `configuration/azure-eu.yaml`
+   - Commits and pushes the updated manifest, triggering the actual Kubernetes deployment
+
+**Required GitHub Secrets:**
+- `NPM_TOKEN` - For installing private npm packages during Docker build
+- `FLOWCORE_MACHINE_GITHUB_TOKEN` - For pushing to the deployment repository
+
+**To deploy:**
+1. Create a new GitHub release with a version tag (e.g., `v1.2.3`)
+2. The GitHub Actions workflow will automatically build and deploy
+
 ### Kubernetes Secrets
 
 Create the required Kubernetes secret using the script in `k8s/create-secret.sh`:
