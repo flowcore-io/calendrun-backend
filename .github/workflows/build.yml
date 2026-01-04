@@ -1,0 +1,108 @@
+name: Build and Deploy Backend
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  extract_info:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      package_name: ${{ steps.package.outputs.name }}
+      deployment_repo: ${{ steps.deployment.outputs.repo }}
+      deployment_tag_path: ${{ steps.deployment.outputs.tag_path }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract version from release tag
+        id: version
+        run: |
+          # Extract version from release tag (remove 'v' prefix if present)
+          RELEASE_TAG="${{ github.event.release.tag_name }}"
+          VERSION="${RELEASE_TAG#v}"  # Remove 'v' prefix if present
+          echo "Release tag: $RELEASE_TAG"
+          echo "Extracted version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      - name: Extract package name
+        id: package
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+      - name: Extract deployment config
+        id: deployment
+        run: |
+          REPO=$(node -p "require('./flowcore.deployment.json').repository")
+          TAG_PATH=$(node -p "require('./flowcore.deployment.json').tagPath")
+          echo "repo=$REPO" >> $GITHUB_OUTPUT
+          echo "tag_path=$TAG_PATH" >> $GITHUB_OUTPUT
+
+  build_docker:
+    needs: extract_info
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::305363105399:role/ECRGithubManager
+          aws-region: eu-west-1
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Create ECR repository if it doesn't exist
+        env:
+          ECR_REPOSITORY: ${{ needs.extract_info.outputs.package_name }}
+        run: |
+          aws ecr describe-repositories --repository-names $ECR_REPOSITORY --region eu-west-1 || \
+          aws ecr create-repository --repository-name $ECR_REPOSITORY --region eu-west-1
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ needs.extract_info.outputs.package_name }}
+          IMAGE_TAG: ${{ needs.extract_info.outputs.version }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          docker build --build-arg NPM_TOKEN="$NPM_TOKEN" -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+  deploy_manifest:
+    needs: [extract_info, build_docker]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout deployment repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ needs.extract_info.outputs.deployment_repo }}
+          token: ${{ secrets.FLOWCORE_MACHINE_GITHUB_TOKEN }}
+          path: deployment-repo
+      - name: Setup yq
+        uses: mikefarah/yq@v4.42.1
+      - name: Update image tag
+        working-directory: deployment-repo
+        env:
+          TAG_PATH: ${{ needs.extract_info.outputs.deployment_tag_path }}
+          VERSION: ${{ needs.extract_info.outputs.version }}
+        run: |
+          echo "Updating tag path: $TAG_PATH"
+          echo "New tag: $VERSION"
+          yq eval ".$TAG_PATH = \"$VERSION\"" -i configuration/azure-eu.yaml
+      - name: Commit and push
+        working-directory: deployment-repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "chore: update ${{ needs.extract_info.outputs.package_name }} to ${{ needs.extract_info.outputs.version }}"
+          git push
+
