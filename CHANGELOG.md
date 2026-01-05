@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/flowcore-io/calendrun-backend/compare/v1.3.1...v1.4.0) (2026-01-05)
+
+
+### Features
+
+* add actual_run_date column to performance and performance_log tables ([c83ef2f](https://github.com/flowcore-io/calendrun-backend/commit/c83ef2f1a962105f86a1e2afca609aa1eaff57fb))
+
 ## [1.3.1](https://github.com/flowcore-io/calendrun-backend/compare/v1.3.0...v1.3.1) (2026-01-04)
 
 
