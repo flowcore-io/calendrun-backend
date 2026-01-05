@@ -30,6 +30,7 @@ export const RunLoggedSchema = z.object({
   userId: z.string(),
   runnerName: z.string().optional(),
   runDate: z.string(), // ISO date string
+  actualRunDate: z.string().optional(), // ISO date string - actual date when the run was conducted
   distanceKm: z.number().positive(),
   timeMinutes: z.number().int().positive().optional(),
   notes: NotesSchema,
@@ -44,6 +45,7 @@ export const RunUpdatedSchema = z.object({
   userId: z.string(),
   runnerName: z.string().optional(),
   runDate: z.string().optional(),
+  actualRunDate: z.string().optional(), // ISO date string - actual date when the run was conducted
   distanceKm: z.number().positive().optional(),
   timeMinutes: z.number().int().positive().optional(),
   notes: NotesSchema,

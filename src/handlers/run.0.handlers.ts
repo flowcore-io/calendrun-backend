@@ -12,48 +12,103 @@ export async function handleRunLogged(payload: unknown, eventId: string) {
     ? (validated.runDate.split("T")[0] ?? validated.runDate)
     : validated.runDate;
 
-  await pool`
-    INSERT INTO performance (
-      id, flowcore_event_id, instance_id, user_id, runner_name,
-      run_date, distance_km, time_minutes, notes, status,
-      recorded_at, change_log, created_at, updated_at
-    ) VALUES (
-      ${validated.id},
-      ${eventId},
-      ${validated.instanceId},
-      ${validated.userId},
-      ${validated.runnerName ?? null},
-      ${runDate},
-      ${validated.distanceKm},
-      ${validated.timeMinutes ?? null},
-      ${validated.notes ?? null},
-      ${validated.status},
-      ${validated.recordedAt ?? null},
-      ${validated.changeLog ? JSON.stringify(validated.changeLog) : null},
-      NOW(),
-      NOW()
-    )
-    ON CONFLICT (id) DO UPDATE SET
-      flowcore_event_id = EXCLUDED.flowcore_event_id,
-      instance_id = EXCLUDED.instance_id,
-      user_id = EXCLUDED.user_id,
-      runner_name = EXCLUDED.runner_name,
-      run_date = EXCLUDED.run_date,
-      distance_km = EXCLUDED.distance_km,
-      time_minutes = EXCLUDED.time_minutes,
-      notes = EXCLUDED.notes,
-      status = EXCLUDED.status,
-      recorded_at = EXCLUDED.recorded_at,
-      change_log = EXCLUDED.change_log,
-      updated_at = NOW()
-    WHERE performance.flowcore_event_id != EXCLUDED.flowcore_event_id
-  `;
+  // Normalize actualRunDate to date-only format, or use created_at date if not provided
+  let actualRunDate: string | null = null;
+  if (validated.actualRunDate) {
+    actualRunDate = validated.actualRunDate.includes("T")
+      ? (validated.actualRunDate.split("T")[0] ?? validated.actualRunDate)
+      : validated.actualRunDate;
+  }
+  // If not provided, will use DATE(NOW()) in the INSERT
+
+  // Get current date for fallback in performance_log
+  const createdTimestamp = new Date().toISOString();
+  const createdDate = createdTimestamp.split("T")[0] ?? createdTimestamp;
+
+  // Use COALESCE to fallback to DATE(NOW()) if actualRunDate is null
+  if (actualRunDate) {
+    await pool`
+      INSERT INTO performance (
+        id, flowcore_event_id, instance_id, user_id, runner_name,
+        run_date, actual_run_date, distance_km, time_minutes, notes, status,
+        recorded_at, change_log, created_at, updated_at
+      ) VALUES (
+        ${validated.id},
+        ${eventId},
+        ${validated.instanceId},
+        ${validated.userId},
+        ${validated.runnerName ?? null},
+        ${runDate},
+        ${actualRunDate},
+        ${validated.distanceKm},
+        ${validated.timeMinutes ?? null},
+        ${validated.notes ?? null},
+        ${validated.status},
+        ${validated.recordedAt ?? null},
+        ${validated.changeLog ? JSON.stringify(validated.changeLog) : null},
+        NOW(),
+        NOW()
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        flowcore_event_id = EXCLUDED.flowcore_event_id,
+        instance_id = EXCLUDED.instance_id,
+        user_id = EXCLUDED.user_id,
+        runner_name = EXCLUDED.runner_name,
+        run_date = EXCLUDED.run_date,
+        actual_run_date = EXCLUDED.actual_run_date,
+        distance_km = EXCLUDED.distance_km,
+        time_minutes = EXCLUDED.time_minutes,
+        notes = EXCLUDED.notes,
+        status = EXCLUDED.status,
+        recorded_at = EXCLUDED.recorded_at,
+        change_log = EXCLUDED.change_log,
+        updated_at = NOW()
+      WHERE performance.flowcore_event_id != EXCLUDED.flowcore_event_id
+    `;
+  } else {
+    await pool.unsafe(
+      `INSERT INTO performance (
+        id, flowcore_event_id, instance_id, user_id, runner_name,
+        run_date, actual_run_date, distance_km, time_minutes, notes, status,
+        recorded_at, change_log, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, DATE(NOW()), $7, $8, $9, $10, $11, $12, NOW(), NOW())
+      ON CONFLICT (id) DO UPDATE SET
+        flowcore_event_id = EXCLUDED.flowcore_event_id,
+        instance_id = EXCLUDED.instance_id,
+        user_id = EXCLUDED.user_id,
+        runner_name = EXCLUDED.runner_name,
+        run_date = EXCLUDED.run_date,
+        actual_run_date = COALESCE(EXCLUDED.actual_run_date, DATE(performance.created_at)),
+        distance_km = EXCLUDED.distance_km,
+        time_minutes = EXCLUDED.time_minutes,
+        notes = EXCLUDED.notes,
+        status = EXCLUDED.status,
+        recorded_at = EXCLUDED.recorded_at,
+        change_log = EXCLUDED.change_log,
+        updated_at = NOW()
+      WHERE performance.flowcore_event_id != EXCLUDED.flowcore_event_id`,
+      [
+        validated.id,
+        eventId,
+        validated.instanceId,
+        validated.userId,
+        validated.runnerName ?? null,
+        runDate,
+        validated.distanceKm,
+        validated.timeMinutes ?? null,
+        validated.notes ?? null,
+        validated.status,
+        validated.recordedAt ?? null,
+        validated.changeLog ? JSON.stringify(validated.changeLog) : null,
+      ]
+    );
+  }
 
   // Log to performance_log table
   await pool`
     INSERT INTO performance_log (
       flowcore_event_id, event_type, performance_id, instance_id, user_id,
-      runner_name, run_date, distance_km, time_minutes, notes, status,
+      runner_name, run_date, actual_run_date, distance_km, time_minutes, notes, status,
       recorded_at, change_log, event_payload
     ) VALUES (
       ${eventId},
@@ -63,6 +118,7 @@ export async function handleRunLogged(payload: unknown, eventId: string) {
       ${validated.userId},
       ${validated.runnerName ?? null},
       ${runDate},
+      ${actualRunDate ?? createdDate},
       ${validated.distanceKm},
       ${validated.timeMinutes ?? null},
       ${validated.notes ?? null},
@@ -95,6 +151,13 @@ export async function handleRunUpdated(payload: unknown, eventId: string) {
       : validated.runDate;
     updates.push(`run_date = $${values.length + 1}`);
     values.push(runDate);
+  }
+  if (validated.actualRunDate !== undefined) {
+    const actualRunDate = validated.actualRunDate.includes("T")
+      ? (validated.actualRunDate.split("T")[0] ?? validated.actualRunDate)
+      : validated.actualRunDate;
+    updates.push(`actual_run_date = $${values.length + 1}`);
+    values.push(actualRunDate);
   }
   if (validated.distanceKm !== undefined) {
     updates.push(`distance_km = $${values.length + 1}`);
@@ -142,11 +205,26 @@ export async function handleRunUpdated(payload: unknown, eventId: string) {
 
   if (currentPerformance.length > 0) {
     const perf = currentPerformance[0];
+    
+    // Determine actual_run_date: use from payload if provided, otherwise from existing record, otherwise from created_at
+    let actualRunDate: string | null = null;
+    if (validated.actualRunDate !== undefined) {
+      actualRunDate = validated.actualRunDate.includes("T")
+        ? (validated.actualRunDate.split("T")[0] ?? validated.actualRunDate)
+        : validated.actualRunDate;
+    } else if (perf.actual_run_date) {
+      actualRunDate = perf.actual_run_date;
+    } else if (perf.created_at) {
+      // Extract date portion from created_at timestamp
+      const createdDate = new Date(perf.created_at);
+      actualRunDate = createdDate.toISOString().split("T")[0] ?? null;
+    }
+    
     // Log to performance_log table
     await pool`
       INSERT INTO performance_log (
         flowcore_event_id, event_type, performance_id, instance_id, user_id,
-        runner_name, run_date, distance_km, time_minutes, notes, status,
+        runner_name, run_date, actual_run_date, distance_km, time_minutes, notes, status,
         recorded_at, change_log, event_payload
       ) VALUES (
         ${eventId},
@@ -156,6 +234,7 @@ export async function handleRunUpdated(payload: unknown, eventId: string) {
         ${validated.userId},
         ${perf.runner_name ?? validated.runnerName ?? null},
         ${perf.run_date ?? (validated.runDate ? (validated.runDate.includes("T") ? validated.runDate.split("T")[0] : validated.runDate) : null)},
+        ${actualRunDate},
         ${perf.distance_km ?? validated.distanceKm ?? null},
         ${perf.time_minutes ?? validated.timeMinutes ?? null},
         ${perf.notes ?? validated.notes ?? null},
@@ -200,7 +279,7 @@ export async function handleRunDeleted(payload: unknown, eventId: string) {
     await pool`
       INSERT INTO performance_log (
         flowcore_event_id, event_type, performance_id, instance_id, user_id,
-        runner_name, run_date, distance_km, time_minutes, notes, status,
+        runner_name, run_date, actual_run_date, distance_km, time_minutes, notes, status,
         recorded_at, change_log, event_payload
       ) VALUES (
         ${eventId},
@@ -210,6 +289,7 @@ export async function handleRunDeleted(payload: unknown, eventId: string) {
         ${validated.userId},
         ${perf.runner_name},
         ${perf.run_date},
+        ${perf.actual_run_date ?? null},
         ${perf.distance_km},
         ${perf.time_minutes},
         ${perf.notes},
@@ -225,7 +305,7 @@ export async function handleRunDeleted(payload: unknown, eventId: string) {
     await pool`
       INSERT INTO performance_log (
         flowcore_event_id, event_type, performance_id, instance_id, user_id,
-        runner_name, run_date, distance_km, time_minutes, notes, status,
+        runner_name, run_date, actual_run_date, distance_km, time_minutes, notes, status,
         recorded_at, change_log, event_payload
       ) VALUES (
         ${eventId},
@@ -233,6 +313,7 @@ export async function handleRunDeleted(payload: unknown, eventId: string) {
         ${validated.id},
         ${validated.instanceId},
         ${validated.userId},
+        NULL,
         NULL,
         NULL,
         NULL,
