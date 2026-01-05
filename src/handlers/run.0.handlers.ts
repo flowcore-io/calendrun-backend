@@ -212,7 +212,7 @@ export async function handleRunUpdated(payload: unknown, eventId: string) {
       actualRunDate = validated.actualRunDate.includes("T")
         ? (validated.actualRunDate.split("T")[0] ?? validated.actualRunDate)
         : validated.actualRunDate;
-    } else if (perf.actual_run_date) {
+    } else if (perf.actual_run_date !== undefined && perf.actual_run_date !== null) {
       actualRunDate = perf.actual_run_date;
     } else if (perf.created_at) {
       // Extract date portion from created_at timestamp
@@ -287,15 +287,15 @@ export async function handleRunDeleted(payload: unknown, eventId: string) {
         ${validated.id},
         ${validated.instanceId},
         ${validated.userId},
-        ${perf.runner_name},
-        ${perf.run_date},
+        ${perf.runner_name ?? null},
+        ${perf.run_date ?? null},
         ${perf.actual_run_date ?? null},
-        ${perf.distance_km},
-        ${perf.time_minutes},
-        ${perf.notes},
-        ${perf.status},
-        ${perf.recorded_at},
-        ${perf.change_log},
+        ${perf.distance_km ?? null},
+        ${perf.time_minutes ?? null},
+        ${perf.notes ?? null},
+        ${perf.status ?? null},
+        ${perf.recorded_at ?? null},
+        ${perf.change_log ?? null},
         ${JSON.stringify(validated)}
       )
       ON CONFLICT (flowcore_event_id) DO NOTHING
