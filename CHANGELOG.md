@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/flowcore-io/calendrun-backend/compare/v1.4.0...v1.4.1) (2026-01-05)
+
+
+### Bug Fixes
+
+* enhance null handling for performance data in run handlers ([4ad8a79](https://github.com/flowcore-io/calendrun-backend/commit/4ad8a793baf5343ff601399847c4d763c3755903))
+
 ## [1.4.0](https://github.com/flowcore-io/calendrun-backend/compare/v1.3.1...v1.4.0) (2026-01-05)
 
 
