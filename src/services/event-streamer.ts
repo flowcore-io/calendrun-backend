@@ -158,6 +158,14 @@ async function processEventType(
         errorString.includes("401") ||
         errorString.includes("UNAUTHORIZED");
 
+      // Check if it's a 403 Forbidden error (IAM permissions issue)
+      const isForbidden =
+        errorStatus === 403 ||
+        errorCode === "FORBIDDEN" ||
+        errorString.includes("403") ||
+        errorString.includes("FORBIDDEN") ||
+        errorString.includes("IAM validation failed");
+
       // Check if it's a 422 Unprocessable Content error (likely invalid parameters)
       const isUnprocessable =
         errorStatus === 422 ||
@@ -171,6 +179,17 @@ async function processEventType(
         if (totalProcessed === 0 && totalSkipped === 0) {
           console.log(
             `ℹ️  Skipping ${flowTypeName}/${eventTypeName} at ${timeBucket} (unauthorized - may not exist or lack permissions)`
+          );
+        }
+        return false; // Exit early, don't break (which would retry)
+      }
+
+      if (isForbidden) {
+        // Silently skip - API key lacks IAM permissions for this event type
+        // Only log once per event type to reduce noise
+        if (totalProcessed === 0 && totalSkipped === 0) {
+          console.log(
+            `ℹ️  Skipping ${flowTypeName}/${eventTypeName} at ${timeBucket} (forbidden - API key lacks IAM permissions)`
           );
         }
         return false; // Exit early, don't break (which would retry)
