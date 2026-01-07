@@ -31,7 +31,7 @@ export const ChallengeStartedSchema = z.object({
   templateId: z.string().uuid(),
   userId: z.string(),
   variant: VariantEnum,
-  themeKey: z.string(),
+  themeKey: z.string().default("january_winter"),
   status: z.enum(["active", "completed"]).default("active"),
   joinedAt: z.string().datetime(),
 });
