@@ -70,11 +70,7 @@ The backend uses Flowcore SDK polling to process events. Configuration is in `fl
   - `challenge.0` - Challenge instance events
   - `challenge.template.0` - Challenge template events
   - `club.0` - Club and membership events
-  - `subscription.0` - Subscription events (from Stripe)
-  - `discount.code.0` - Discount code events
-  - `discount.bundle.0` - Discount bundle events
   - `user.0` - User events
-  - `user.settings.0` - User settings events
 
 ## Database
 
@@ -89,9 +85,6 @@ The database includes tables for:
 - Runs
 - Clubs
 - Club memberships
-- Subscriptions
-- Discount codes
-- Discount bundles
 
 ## Deployment
 
@@ -171,9 +164,6 @@ The backend provides REST API endpoints for reading data:
 - `GET /api/runs` - Get runs
 - `GET /api/clubs` - Get clubs
 - `GET /api/clubs/:id` - Get specific club
-- `GET /api/subscriptions` - Get subscriptions
-- `GET /api/discount-codes` - Get discount codes
-- `GET /api/discount-bundles` - Get discount bundles
 
 All write operations go through Flowcore event ingestion (handled by the frontend).
 

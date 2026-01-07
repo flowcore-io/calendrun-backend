@@ -27,9 +27,6 @@ const CHALLENGE_INSTANCE_FRAGMENT_TYPE_ID = "8d8ce12b-c12e-4426-a20f-21b88fb5c6c
 const RUN_PERFORMANCE_FRAGMENT_TYPE_ID = "0151d333-4dc7-4ceb-aeef-2c7e783a8f5b";
 const CLUB_FRAGMENT_TYPE_ID = "1bbc56b0-1a82-414c-a1a8-b2aa330ad4a2";
 const CLUB_MEMBERSHIP_FRAGMENT_TYPE_ID = "68b5196d-2ec6-48d2-801d-70fd6ed9534c";
-const SUBSCRIPTION_FRAGMENT_TYPE_ID = "201b9653-b151-42f1-aee9-118e7db6409a";
-const DISCOUNT_CODE_FRAGMENT_TYPE_ID = "10440b9e-eb1d-4640-957b-4301dda207a2";
-const DISCOUNT_BUNDLE_FRAGMENT_TYPE_ID = "6962f948-9667-40f7-9798-f5d89fdefcf5";
 
 const USABLE_API_BASE_URL = "https://usable.dev/api";
 const USABLE_API_TOKEN = process.env.CALENDRUN_USABLE_API_TOKEN;
@@ -547,180 +544,6 @@ async function migrateClubMemberships(dataCoreId: string): Promise<void> {
   );
 }
 
-/**
- * Migrate subscriptions
- */
-async function migrateSubscriptions(dataCoreId: string): Promise<void> {
-  console.log("\n💳 Migrating subscriptions...");
-  const fragments = await fetchAllUsableFragments(SUBSCRIPTION_FRAGMENT_TYPE_ID);
-  console.log(`   Found ${fragments.length} subscriptions`);
-
-  let successCount = 0;
-  let errorCount = 0;
-
-  for (const fragment of fragments) {
-    try {
-      const frontmatter = fragment.frontmatter ?? {};
-      const userId = getFrontmatterValue(frontmatter, "userId") as string;
-      const stripeCustomerId = getFrontmatterValue(frontmatter, "stripeCustomerId") as string;
-      const stripeSubscriptionId = getFrontmatterValue(
-        frontmatter,
-        "stripeSubscriptionId"
-      ) as string;
-      const status = getFrontmatterValue(frontmatter, "status") as string;
-      const currentPeriodEnd = getFrontmatterValue(frontmatter, "currentPeriodEnd") as
-        | string
-        | undefined;
-      const priceId = getFrontmatterValue(frontmatter, "priceId") as string | undefined;
-
-      // Map status to match schema
-      const mappedStatus = status === "incomplete_expired" ? "incomplete" : status;
-
-      await emitFlowcoreEvent(
-        "subscription.0",
-        "subscription.created.0",
-        {
-          id: fragment.id,
-          userId,
-          stripeCustomerId,
-          stripeSubscriptionId,
-          status: mappedStatus,
-          currentPeriodEnd,
-          priceId,
-        },
-        dataCoreId
-      );
-
-      successCount++;
-      if (successCount % 10 === 0) {
-        process.stdout.write(".");
-      }
-    } catch (error) {
-      errorCount++;
-      console.error(`\n   ❌ Error migrating subscription ${fragment.id}:`, error);
-    }
-  }
-
-  console.log(
-    `\n   ✅ Migrated ${successCount} subscriptions${errorCount > 0 ? `, ${errorCount} errors` : ""}`
-  );
-}
-
-/**
- * Migrate discount code redemptions
- */
-async function migrateDiscountCodes(dataCoreId: string): Promise<void> {
-  console.log("\n🎟️  Migrating discount code redemptions...");
-  const fragments = await fetchAllUsableFragments(DISCOUNT_CODE_FRAGMENT_TYPE_ID);
-  console.log(`   Found ${fragments.length} discount codes`);
-
-  let successCount = 0;
-  let errorCount = 0;
-
-  for (const fragment of fragments) {
-    try {
-      const frontmatter = fragment.frontmatter ?? {};
-      const code = getFrontmatterValue(frontmatter, "code") as string;
-      const redeemedBy = (getFrontmatterValue(frontmatter, "redeemedBy") as string[]) ?? [];
-
-      // Emit one event per redemption
-      for (const userId of redeemedBy) {
-        // We don't have the exact redemption timestamp, so use fragment updated_at
-        // In a real scenario, you might want to store redemption timestamps separately
-        await emitFlowcoreEvent(
-          "discount.code.0",
-          "discount.code.redeemed.0",
-          {
-            id: crypto.randomUUID(), // Generate new ID for each redemption event
-            code,
-            userId,
-            redeemedAt: fragment.updated_at, // Approximate timestamp
-          },
-          dataCoreId
-        );
-      }
-
-      if (redeemedBy.length > 0) {
-        successCount++;
-        if (successCount % 10 === 0) {
-          process.stdout.write(".");
-        }
-      }
-    } catch (error) {
-      errorCount++;
-      console.error(`\n   ❌ Error migrating discount code ${fragment.id}:`, error);
-    }
-  }
-
-  console.log(
-    `\n   ✅ Migrated ${successCount} discount code redemptions${errorCount > 0 ? `, ${errorCount} errors` : ""}`
-  );
-}
-
-/**
- * Migrate discount bundles
- */
-async function migrateDiscountBundles(dataCoreId: string): Promise<void> {
-  console.log("\n📦 Migrating discount bundles...");
-  const fragments = await fetchAllUsableFragments(DISCOUNT_BUNDLE_FRAGMENT_TYPE_ID);
-  console.log(`   Found ${fragments.length} discount bundles`);
-
-  let successCount = 0;
-  let errorCount = 0;
-
-  for (const fragment of fragments) {
-    try {
-      const frontmatter = fragment.frontmatter ?? {};
-      const clubName = getFrontmatterValue(frontmatter, "clubName") as string | undefined;
-      const purchasedBy = getFrontmatterValue(frontmatter, "purchasedBy") as string;
-      const stripeInvoiceId = getFrontmatterValue(frontmatter, "stripeInvoiceId") as
-        | string
-        | undefined;
-      const status = getFrontmatterValue(frontmatter, "status") as string | undefined;
-      const codeCount = getFrontmatterValue(frontmatter, "codeCount") as number | undefined;
-      const priceAmount = getFrontmatterValue(frontmatter, "priceAmount") as number | undefined;
-
-      // Get code IDs from tags or frontmatter
-      const codeIds: string[] = [];
-      const codeTags = fragment.tags?.filter((t) => t.startsWith("code:"));
-      if (codeTags) {
-        // Extract code IDs from tags (if they're stored as code:uuid)
-        // Otherwise, we'd need to query discount codes by bundleId
-        // For now, we'll leave codeIds empty if not directly available
-      }
-
-      if (stripeInvoiceId && codeCount && priceAmount) {
-        await emitFlowcoreEvent(
-          "discount.code.0",
-          "discount.bundle.purchased.0",
-          {
-            id: fragment.id,
-            clubName: clubName ?? "",
-            purchasedBy,
-            stripeInvoiceId,
-            status: (status as "pending" | "active" | "expired") ?? "pending",
-            codeCount,
-            priceAmount,
-            codeIds,
-          },
-          dataCoreId
-        );
-
-        successCount++;
-        if (successCount % 10 === 0) {
-          process.stdout.write(".");
-        }
-      }
-    } catch (error) {
-      errorCount++;
-      console.error(`\n   ❌ Error migrating discount bundle ${fragment.id}:`, error);
-    }
-  }
-
-  console.log(
-    `\n   ✅ Migrated ${successCount} discount bundles${errorCount > 0 ? `, ${errorCount} errors` : ""}`
-  );
-}
 
 /**
  * Main migration function
@@ -750,15 +573,6 @@ async function main() {
 
     // 5. Run performances
     await migrateRunPerformances(dataCoreId);
-
-    // 6. Subscriptions
-    await migrateSubscriptions(dataCoreId);
-
-    // 7. Discount codes
-    await migrateDiscountCodes(dataCoreId);
-
-    // 8. Discount bundles
-    await migrateDiscountBundles(dataCoreId);
 
     console.log("\n✅ Migration completed successfully!");
     console.log("\n💡 Next steps:");

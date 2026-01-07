@@ -1,12 +1,8 @@
 import * as challengeHandlers from "../handlers/challenge.0.handlers";
 import * as challengeTemplateHandlers from "../handlers/challenge.template.0.handlers";
 import * as clubHandlers from "../handlers/club.0.handlers";
-import * as discountBundleHandlers from "../handlers/discount.bundle.0.handlers";
-import * as discountCodeHandlers from "../handlers/discount.code.0.handlers";
 import * as runHandlers from "../handlers/run.0.handlers";
-import * as subscriptionHandlers from "../handlers/subscription.0.handlers";
 import * as userHandlers from "../handlers/user.0.handlers";
-import * as userSettingsHandlers from "../handlers/user.settings.0.handlers";
 
 type FlowcoreEvent = {
   eventId: string;
@@ -83,53 +79,12 @@ export async function processEvent(
         await clubHandlers.handleClubMemberLeft(event.payload, event.eventId);
         break;
 
-      // Subscription events
-      case "subscription.0/subscription.created.0":
-        await subscriptionHandlers.handleSubscriptionCreated(event.payload, event.eventId);
-        break;
-      case "subscription.0/subscription.updated.0":
-        await subscriptionHandlers.handleSubscriptionUpdated(event.payload, event.eventId);
-        break;
-      case "subscription.0/subscription.deleted.0":
-        await subscriptionHandlers.handleSubscriptionDeleted(event.payload, event.eventId);
-        break;
-
-      // Discount code events
-      case "discount.code.0/discount.code.created.0":
-        await discountCodeHandlers.handleDiscountCodeCreated(event.payload, event.eventId);
-        break;
-      case "discount.code.0/discount.code.updated.0":
-        await discountCodeHandlers.handleDiscountCodeUpdated(event.payload, event.eventId);
-        break;
-      case "discount.code.0/discount.code.deleted.0":
-        await discountCodeHandlers.handleDiscountCodeDeleted(event.payload, event.eventId);
-        break;
-      case "discount.code.0/discount.code.redeemed.0":
-        await discountCodeHandlers.handleDiscountCodeRedeemed(event.payload, event.eventId);
-        break;
-
-      // Discount bundle events
-      case "discount.bundle.0/discount.bundle.purchased.0":
-        await discountBundleHandlers.handleDiscountBundlePurchased(event.payload, event.eventId);
-        break;
-      case "discount.bundle.0/discount.bundle.updated.0":
-        await discountBundleHandlers.handleDiscountBundleUpdated(event.payload, event.eventId);
-        break;
-      case "discount.bundle.0/discount.bundle.deleted.0":
-        await discountBundleHandlers.handleDiscountBundleDeleted(event.payload, event.eventId);
-        break;
-
       // User events
       case "user.0/user.created.0":
         await userHandlers.handleUserCreated(event.payload, event.eventId);
         break;
       case "user.0/user.updated.0":
         await userHandlers.handleUserUpdated(event.payload, event.eventId);
-        break;
-
-      // User settings events
-      case "user.settings.0/user.settings.updated.0":
-        await userSettingsHandlers.handleUserSettingsUpdated(event.payload, event.eventId);
         break;
 
       default:

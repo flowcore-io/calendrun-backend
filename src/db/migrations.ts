@@ -29,10 +29,6 @@ export async function initializeSchema() {
         "club",
         "club_membership",
         "performance",
-        "subscription",
-        "discount_code",
-        "discount_bundle",
-        "user_settings",
         "user",
       ];
 

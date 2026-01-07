@@ -200,65 +200,6 @@ async function findExistingUsers(dataCoreId: string): Promise<UserInfo[]> {
     );
   }
 
-  // Get users from subscription
-  const subscriptions = await pool`
-    SELECT DISTINCT user_id
-    FROM subscription
-    WHERE user_id IS NOT NULL AND user_id != ''
-  `;
-
-  for (const subscription of subscriptions) {
-    const userId = subscription.user_id as string;
-    if (userId && typeof userId === "string" && userId.trim().length > 0) {
-      if (!users.has(userId)) {
-        users.set(userId, {
-          userId,
-          name: null,
-          email: null,
-        });
-      }
-    }
-  }
-
-  // Get users from discount_bundle
-  const bundles = await pool`
-    SELECT DISTINCT purchased_by
-    FROM discount_bundle
-    WHERE purchased_by IS NOT NULL AND purchased_by != ''
-  `;
-
-  for (const bundle of bundles) {
-    const userId = bundle.purchased_by as string;
-    if (userId && typeof userId === "string" && userId.trim().length > 0) {
-      if (!users.has(userId)) {
-        users.set(userId, {
-          userId,
-          name: null,
-          email: null,
-        });
-      }
-    }
-  }
-
-  // Get users from user_settings
-  const settings = await pool`
-    SELECT DISTINCT user_id
-    FROM user_settings
-    WHERE user_id IS NOT NULL AND user_id != ''
-  `;
-
-  for (const setting of settings) {
-    const userId = setting.user_id as string;
-    if (userId && typeof userId === "string" && userId.trim().length > 0) {
-      if (!users.has(userId)) {
-        users.set(userId, {
-          userId,
-          name: null,
-          email: null,
-        });
-      }
-    }
-  }
 
   return Array.from(users.values());
 }

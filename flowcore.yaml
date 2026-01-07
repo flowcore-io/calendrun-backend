@@ -44,35 +44,6 @@ dataCore:
           description: "Club membership created"
         club.member.left.0:
           description: "Club membership deleted"
-    subscription.0:
-      description: "Subscription events (from Stripe)"
-      eventTypes:
-        subscription.created.0:
-          description: "Subscription created (from Stripe)"
-        subscription.updated.0:
-          description: "Subscription updated (from Stripe)"
-        subscription.deleted.0:
-          description: "Subscription deleted (from Stripe)"
-    discount.code.0:
-      description: "Discount code events"
-      eventTypes:
-        discount.code.created.0:
-          description: "Discount code created"
-        discount.code.updated.0:
-          description: "Discount code updated"
-        discount.code.deleted.0:
-          description: "Discount code deleted"
-        discount.code.redeemed.0:
-          description: "Discount code redeemed"
-    discount.bundle.0:
-      description: "Discount bundle events"
-      eventTypes:
-        discount.bundle.purchased.0:
-          description: "Discount bundle purchased"
-        discount.bundle.updated.0:
-          description: "Discount bundle updated"
-        discount.bundle.deleted.0:
-          description: "Discount bundle deleted"
     user.0:
       description: "User events"
       eventTypes:
@@ -80,8 +51,3 @@ dataCore:
           description: "User created"
         user.updated.0:
           description: "User updated"
-    user.settings.0:
-      description: "User settings events"
-      eventTypes:
-        user.settings.updated.0:
-          description: "User settings updated"

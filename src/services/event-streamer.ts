@@ -276,24 +276,9 @@ async function processTimeBucket(timeBucket: string): Promise<boolean> {
     { flowType: "club.0", eventType: "club.updated.0" },
     { flowType: "club.0", eventType: "club.member.joined.0" },
     { flowType: "club.0", eventType: "club.member.left.0" },
-    // Subscription events
-    { flowType: "subscription.0", eventType: "subscription.created.0" },
-    { flowType: "subscription.0", eventType: "subscription.updated.0" },
-    { flowType: "subscription.0", eventType: "subscription.deleted.0" },
-    // Discount code events
-    { flowType: "discount.code.0", eventType: "discount.code.created.0" },
-    { flowType: "discount.code.0", eventType: "discount.code.updated.0" },
-    { flowType: "discount.code.0", eventType: "discount.code.deleted.0" },
-    { flowType: "discount.code.0", eventType: "discount.code.redeemed.0" },
-    // Discount bundle events
-    { flowType: "discount.bundle.0", eventType: "discount.bundle.purchased.0" },
-    { flowType: "discount.bundle.0", eventType: "discount.bundle.updated.0" },
-    { flowType: "discount.bundle.0", eventType: "discount.bundle.deleted.0" },
     // User events
     { flowType: "user.0", eventType: "user.created.0" },
     { flowType: "user.0", eventType: "user.updated.0" },
-    // User settings events
-    { flowType: "user.settings.0", eventType: "user.settings.updated.0" },
   ];
 
   for (const { flowType, eventType } of eventTypes) {
