@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/flowcore-io/calendrun-backend/compare/v1.5.0...v1.5.1) (2026-01-07)
+
+
+### Bug Fixes
+
+* set default themeKey in ChallengeStartedSchema ([360f393](https://github.com/flowcore-io/calendrun-backend/commit/360f3937bb11f12fd3940d1e81994e1a9f0444ad))
+
 ## [1.5.0](https://github.com/flowcore-io/calendrun-backend/compare/v1.4.1...v1.5.0) (2026-01-07)
 
 
