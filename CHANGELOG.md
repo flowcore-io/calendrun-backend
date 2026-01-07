@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.5.0](https://github.com/flowcore-io/calendrun-backend/compare/v1.4.1...v1.5.0) (2026-01-07)
+
+
+### Features
+
+* add handling for 403 Forbidden errors in event processing ([8016b1e](https://github.com/flowcore-io/calendrun-backend/commit/8016b1ec84198be7fac3171413b2c8c5c3e00640))
+
+
+### Bug Fixes
+
+* add user_id handling in challenge update process ([b6cb3c4](https://github.com/flowcore-io/calendrun-backend/commit/b6cb3c44dc8fe7753be2deb07d12adcbfcd8e00a))
+
 ## [1.4.1](https://github.com/flowcore-io/calendrun-backend/compare/v1.4.0...v1.4.1) (2026-01-05)
 
 
