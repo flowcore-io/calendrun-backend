@@ -78,6 +78,10 @@ export async function handleChallengeUpdated(payload: unknown, eventId: string) 
     updateFields.push(`completed_at = $${updateValues.length + 1}`);
     updateValues.push(validated.completedAt);
   }
+  if (validated.userId !== undefined) {
+    updateFields.push(`user_id = $${updateValues.length + 1}`);
+    updateValues.push(validated.userId);
+  }
 
   if (updateFields.length === 0) {
     console.warn(`⚠️  No fields to update for challenge ${validated.id}`);
