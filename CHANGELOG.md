@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.2](https://github.com/flowcore-io/calendrun-backend/compare/v1.5.1...v1.5.2) (2026-01-07)
+
+
+### Bug Fixes
+
+* remove subscription and discount-related features ([a53608e](https://github.com/flowcore-io/calendrun-backend/commit/a53608ea2754bba246006674b3a6badf697094b6))
+
 ## [1.5.1](https://github.com/flowcore-io/calendrun-backend/compare/v1.5.0...v1.5.1) (2026-01-07)
 
 
