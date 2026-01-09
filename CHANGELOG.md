@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.6.0](https://github.com/flowcore-io/calendrun-backend/compare/v1.5.2...v1.6.0) (2026-01-09)
+
+
+### Features
+
+* add dev environment setup and maintenance scripts ([d5b308c](https://github.com/flowcore-io/calendrun-backend/commit/d5b308c8ddc56691d988096c26c9ed790cac1146))
+* add dev mode safety checks to Flowcore client ([c35aac5](https://github.com/flowcore-io/calendrun-backend/commit/c35aac57750c6982c28a32063195beed32d4a861))
+* add dev/test environment configuration ([bed9e15](https://github.com/flowcore-io/calendrun-backend/commit/bed9e150d88f7ee53032d653db49ef631988844a))
+* add dynamic table name utilities for dev_ prefix ([78a6cd9](https://github.com/flowcore-io/calendrun-backend/commit/78a6cd9d1b35e06dd0faf75181d0fe0a12734dca))
+
+
+### Bug Fixes
+
+* cast params array to satisfy TypeScript for pool.unsafe() ([a59ab67](https://github.com/flowcore-io/calendrun-backend/commit/a59ab674ecc2e8b34e07c4151310cee78a991717))
+
 ## [1.5.2](https://github.com/flowcore-io/calendrun-backend/compare/v1.5.1...v1.5.2) (2026-01-07)
 
 
