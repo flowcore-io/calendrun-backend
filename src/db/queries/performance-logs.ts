@@ -1,4 +1,5 @@
 import { pool } from "../pool";
+import { getTableName } from "../table-names";
 
 export interface PerformanceLogFilters {
   userId: string;
@@ -11,38 +12,48 @@ export interface PerformanceLogFilters {
 
 export async function getPerformanceLogs(filters: PerformanceLogFilters) {
   const { userId, startDate, endDate, eventType, limit = 100, offset = 0 } = filters;
+  const tableName = getTableName("performance_log");
 
-  let query = pool`
-    SELECT * FROM performance_log
-    WHERE user_id = ${userId}
-  `;
+  const conditions: string[] = [`user_id = $1`];
+  const params: unknown[] = [userId];
+  let paramIndex = 2;
 
   if (startDate) {
-    query = pool`${query} AND created_at >= ${startDate}::timestamp`;
+    conditions.push(`created_at >= $${paramIndex}::timestamp`);
+    params.push(startDate);
+    paramIndex++;
   }
 
   if (endDate) {
-    query = pool`${query} AND created_at <= ${endDate}::timestamp`;
+    conditions.push(`created_at <= $${paramIndex}::timestamp`);
+    params.push(endDate);
+    paramIndex++;
   }
 
   if (eventType) {
-    query = pool`${query} AND event_type = ${eventType}`;
+    conditions.push(`event_type = $${paramIndex}`);
+    params.push(eventType);
+    paramIndex++;
   }
 
-  query = pool`
-    ${query}
+  const whereClause = conditions.join(" AND ");
+  const query = `
+    SELECT * FROM ${tableName}
+    WHERE ${whereClause}
     ORDER BY created_at DESC
-    LIMIT ${limit}
-    OFFSET ${offset}
+    LIMIT $${paramIndex}
+    OFFSET $${paramIndex + 1}
   `;
+  params.push(limit, offset);
 
-  return query;
+  return pool.unsafe(query, params);
 }
 
 export async function getPerformanceLogsByPerformanceId(performanceId: string) {
-  return pool`
-    SELECT * FROM performance_log
-    WHERE performance_id = ${performanceId}
+  const tableName = getTableName("performance_log");
+  return pool.unsafe(`
+    SELECT * FROM ${tableName}
+    WHERE performance_id = $1
     ORDER BY created_at DESC
-  `;
+  `, [performanceId]);
 }
