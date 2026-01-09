@@ -5,29 +5,20 @@ import {
   ClubUpdatedSchema,
 } from "../contracts/club.0";
 import { pool } from "../db/pool";
+import { getTableName } from "../db/table-names";
 
 /**
  * Handle club.created.0 event
  */
 export async function handleClubCreated(payload: unknown, eventId: string) {
   const validated = ClubCreatedSchema.parse(payload);
+  const clubTable = getTableName("club");
 
-  await pool`
-    INSERT INTO club (
+  await pool.unsafe(
+    `INSERT INTO ${clubTable} (
       id, flowcore_event_id, name, description, invite_token,
       logo_url, welcome_text, short_description, created_at, updated_at
-    ) VALUES (
-      ${validated.id},
-      ${eventId},
-      ${validated.name},
-      ${validated.description ?? null},
-      ${validated.inviteToken},
-      ${validated.logoUrl ?? null},
-      ${validated.welcomeText ? JSON.stringify(validated.welcomeText) : null},
-      ${validated.shortDescription ? JSON.stringify(validated.shortDescription) : null},
-      NOW(),
-      NOW()
-    )
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
     ON CONFLICT (id) DO UPDATE SET
       flowcore_event_id = EXCLUDED.flowcore_event_id,
       name = EXCLUDED.name,
@@ -37,8 +28,18 @@ export async function handleClubCreated(payload: unknown, eventId: string) {
       welcome_text = EXCLUDED.welcome_text,
       short_description = EXCLUDED.short_description,
       updated_at = EXCLUDED.updated_at
-    WHERE club.flowcore_event_id != EXCLUDED.flowcore_event_id
-  `;
+    WHERE ${clubTable}.flowcore_event_id != EXCLUDED.flowcore_event_id`,
+    [
+      validated.id,
+      eventId,
+      validated.name,
+      validated.description ?? null,
+      validated.inviteToken,
+      validated.logoUrl ?? null,
+      validated.welcomeText ? JSON.stringify(validated.welcomeText) : null,
+      validated.shortDescription ? JSON.stringify(validated.shortDescription) : null,
+    ]
+  );
 }
 
 /**
@@ -82,8 +83,9 @@ export async function handleClubUpdated(payload: unknown, eventId: string) {
 
   updates.push("updated_at = NOW()");
 
+  const clubTable = getTableName("club");
   await pool.unsafe(
-    `UPDATE club SET ${updates.join(", ")} WHERE id = $${values.length - 1} AND flowcore_event_id != $${values.length}`,
+    `UPDATE ${clubTable} SET ${updates.join(", ")} WHERE id = $${values.length - 1} AND flowcore_event_id != $${values.length}`,
     values as never[]
   );
 }
@@ -97,31 +99,24 @@ export async function handleClubMemberJoined(payload: unknown, eventId: string) 
   // If userName is not provided, look it up from the user table
   let userName = validated.userName;
   if (!userName) {
-    const userResult = await pool`
-      SELECT name FROM "user"
-      WHERE id = ${validated.userId}
-      LIMIT 1
-    `;
+    const userTable = getTableName("user");
+    const userResult = await pool.unsafe(
+      `SELECT name FROM ${userTable}
+      WHERE id = $1
+      LIMIT 1`,
+      [validated.userId]
+    );
     if (userResult.length > 0 && userResult[0]?.name) {
       userName = userResult[0].name;
     }
   }
 
-  await pool`
-    INSERT INTO club_membership (
+  const membershipTable = getTableName("club_membership");
+  await pool.unsafe(
+    `INSERT INTO ${membershipTable} (
       id, flowcore_event_id, club_id, user_id, user_name,
       role, joined_at, created_at, updated_at
-    ) VALUES (
-      ${validated.id},
-      ${eventId},
-      ${validated.clubId},
-      ${validated.userId},
-      ${userName ?? null},
-      ${validated.role},
-      ${validated.joinedAt},
-      NOW(),
-      NOW()
-    )
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
     ON CONFLICT (id) DO UPDATE SET
       flowcore_event_id = EXCLUDED.flowcore_event_id,
       club_id = EXCLUDED.club_id,
@@ -130,8 +125,17 @@ export async function handleClubMemberJoined(payload: unknown, eventId: string) 
       role = EXCLUDED.role,
       joined_at = EXCLUDED.joined_at,
       updated_at = EXCLUDED.updated_at
-    WHERE club_membership.flowcore_event_id != EXCLUDED.flowcore_event_id
-  `;
+    WHERE ${membershipTable}.flowcore_event_id != EXCLUDED.flowcore_event_id`,
+    [
+      validated.id,
+      eventId,
+      validated.clubId,
+      validated.userId,
+      userName ?? null,
+      validated.role,
+      validated.joinedAt,
+    ]
+  );
 }
 
 /**
@@ -139,11 +143,13 @@ export async function handleClubMemberJoined(payload: unknown, eventId: string) 
  */
 export async function handleClubMemberLeft(payload: unknown, eventId: string) {
   const validated = ClubMemberLeftSchema.parse(payload);
+  const membershipTable = getTableName("club_membership");
 
-  await pool`
-    DELETE FROM club_membership
-    WHERE club_id = ${validated.clubId}
-      AND user_id = ${validated.userId}
-      AND flowcore_event_id != ${eventId}
-  `;
+  await pool.unsafe(
+    `DELETE FROM ${membershipTable}
+    WHERE club_id = $1
+      AND user_id = $2
+      AND flowcore_event_id != $3`,
+    [validated.clubId, validated.userId, eventId]
+  );
 }

@@ -4,29 +4,20 @@ import {
   ChallengeUpdatedSchema,
 } from "../contracts/challenge.0";
 import { pool } from "../db/pool";
+import { getTableName } from "../db/table-names";
 
 /**
  * Handle challenge.started.0 event
  */
 export async function handleChallengeStarted(payload: unknown, eventId: string) {
   const validated = ChallengeStartedSchema.parse(payload);
+  const instanceTable = getTableName("challenge_instance");
 
-  await pool`
-    INSERT INTO challenge_instance (
+  await pool.unsafe(
+    `INSERT INTO ${instanceTable} (
       id, flowcore_event_id, template_id, user_id, variant,
       theme_key, status, joined_at, created_at, updated_at
-    ) VALUES (
-      ${validated.id},
-      ${eventId},
-      ${validated.templateId},
-      ${validated.userId},
-      ${validated.variant},
-      ${validated.themeKey},
-      ${validated.status},
-      ${validated.joinedAt},
-      NOW(),
-      NOW()
-    )
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
     ON CONFLICT (id) DO UPDATE SET
       flowcore_event_id = EXCLUDED.flowcore_event_id,
       template_id = EXCLUDED.template_id,
@@ -36,8 +27,18 @@ export async function handleChallengeStarted(payload: unknown, eventId: string) 
       status = EXCLUDED.status,
       joined_at = EXCLUDED.joined_at,
       updated_at = NOW()
-    WHERE challenge_instance.flowcore_event_id != EXCLUDED.flowcore_event_id
-  `;
+    WHERE ${instanceTable}.flowcore_event_id != EXCLUDED.flowcore_event_id`,
+    [
+      validated.id,
+      eventId,
+      validated.templateId,
+      validated.userId,
+      validated.variant,
+      validated.themeKey,
+      validated.status,
+      validated.joinedAt,
+    ]
+  );
 }
 
 /**
@@ -91,9 +92,10 @@ export async function handleChallengeUpdated(payload: unknown, eventId: string) 
   updateFields.push("updated_at = NOW()");
   updateValues.push(validated.id, eventId);
 
+  const instanceTable = getTableName("challenge_instance");
   // Use postgres template literal with SQL.unsafe for dynamic queries
   await pool.unsafe(
-    `UPDATE challenge_instance SET ${updateFields.join(", ")} WHERE id = $${updateValues.length - 1} AND flowcore_event_id != $${updateValues.length}`,
+    `UPDATE ${instanceTable} SET ${updateFields.join(", ")} WHERE id = $${updateValues.length - 1} AND flowcore_event_id != $${updateValues.length}`,
     updateValues as never[]
   );
 }
@@ -103,17 +105,26 @@ export async function handleChallengeUpdated(payload: unknown, eventId: string) 
  */
 export async function handleChallengeCompleted(payload: unknown, eventId: string) {
   const validated = ChallengeCompletedSchema.parse(payload);
+  const instanceTable = getTableName("challenge_instance");
 
-  await pool`
-    UPDATE challenge_instance
+  await pool.unsafe(
+    `UPDATE ${instanceTable}
     SET
       status = 'completed',
-      total_completed_km = ${validated.totalCompletedKm},
-      succeeded = ${validated.succeeded},
-      completed_at = ${validated.completedAt},
+      total_completed_km = $1,
+      succeeded = $2,
+      completed_at = $3,
       updated_at = NOW()
-    WHERE id = ${validated.id}
-      AND user_id = ${validated.userId}
-      AND flowcore_event_id != ${eventId}
-  `;
+    WHERE id = $4
+      AND user_id = $5
+      AND flowcore_event_id != $6`,
+    [
+      validated.totalCompletedKm,
+      validated.succeeded,
+      validated.completedAt,
+      validated.id,
+      validated.userId,
+      eventId,
+    ]
+  );
 }
