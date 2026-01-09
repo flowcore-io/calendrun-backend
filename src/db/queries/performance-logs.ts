@@ -46,7 +46,7 @@ export async function getPerformanceLogs(filters: PerformanceLogFilters) {
   `;
   params.push(limit, offset);
 
-  return pool.unsafe(query, params);
+  return pool.unsafe(query, params as never[]);
 }
 
 export async function getPerformanceLogsByPerformanceId(performanceId: string) {
