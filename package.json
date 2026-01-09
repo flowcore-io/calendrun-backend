@@ -15,7 +15,14 @@
     "migrate:usable-to-flowcore": "bun run scripts/migrate-usable-to-flowcore.ts",
     "migrate:add-user-table": "bun run scripts/add-user-table.ts",
     "migrate:ingest-users": "bun run scripts/ingest-existing-users.ts",
-    "process:templates": "bun run scripts/process-challenge-templates.ts"
+    "process:templates": "bun run scripts/process-challenge-templates.ts",
+    "dev:setup": "bun run --env-file=.env.development --env-file=.env.development.local scripts/setup-dev-datacore.ts && bun run dev:migrate",
+    "dev:reset": "bun run --env-file=.env.development --env-file=.env.development.local scripts/reset-dev-tables.ts",
+    "dev:backend": "bun run --env-file=.env.development --env-file=.env.development.local src/index.ts",
+    "dev:migrate": "bun run --env-file=.env.development --env-file=.env.development.local scripts/migrate-dev.ts",
+    "dev:flowcore:setup": "bun run --env-file=.env.development --env-file=.env.development.local scripts/setup-dev-datacore.ts",
+    "dev:replay-events": "bun run --env-file=.env.development --env-file=.env.development.local scripts/replay-production-events.ts",
+    "dev:verify": "bun run --env-file=.env.development --env-file=.env.development.local scripts/verify-dev-env.ts"
   },
   "dependencies": {
     "@flowcore/hono-api": "^0.3.0",
