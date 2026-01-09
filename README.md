@@ -28,8 +28,9 @@ Bun.js backend service for CalendRun, deployed to Flowcore Kubernetes.
    ```
 
 2. **Set up environment variables:**
-   - Copy `env.example` to `.env.local`
-   - Fill in all required values (see Environment Variables section below)
+   - Copy `env.development.local.example` to `.env.development.local`
+   - Fill in your personal values (secrets, database URL, etc.)
+   - Team defaults are already in `.env.development` (committed)
 
 3. **Start development server:**
    ```bash
@@ -58,6 +59,18 @@ See `env.example` for all required environment variables:
 - `bun run migrate:add-user-table` - Add user table migration
 - `bun run migrate:ingest-users` - Ingest existing users
 - `bun run process:templates` - Process challenge templates
+
+### Dev/Test Environment Scripts
+
+- `bun run dev:setup` - Run all setup scripts (datacore, migrations)
+- `bun run dev:reset` - Reset dev database tables (truncate dev_* tables)
+- `bun run dev:backend` - Start backend in dev mode
+- `bun run dev:migrate` - Run migrations for dev tables
+- `bun run dev:flowcore:setup` - Setup Flowcore dev datacore
+- `bun run dev:replay-events` - Replay production events to dev datacore
+- `bun run dev:verify` - Verify dev environment configuration
+
+See the [CalendRun Dev/Test Environment Setup Guide](https://usable.dev/fragments) in Usable for detailed documentation.
 
 ## Flowcore Configuration
 

@@ -18,6 +18,12 @@ const envSchema = z.object({
   KEYCLOAK_ISSUER: z.string().url().optional(),
   CORS_ORIGIN: z.string().url().optional(),
   SKIP_ENV_VALIDATION: z.string().optional(),
+  // Dev/Test environment configuration
+  DEV_MODE: z
+    .string()
+    .default("false")
+    .transform((val) => val === "true"),
+  TABLE_PREFIX: z.string().default(""),
 });
 
 function getEnv() {
@@ -33,7 +39,14 @@ function getEnv() {
     process.exit(1);
   }
 
-  return parsed.data;
+  const env = parsed.data;
+
+  // Auto-set TABLE_PREFIX to "dev_" when DEV_MODE=true and TABLE_PREFIX is empty
+  if (env.DEV_MODE && !env.TABLE_PREFIX) {
+    env.TABLE_PREFIX = "dev_";
+  }
+
+  return env;
 }
 
 export const env = getEnv();
