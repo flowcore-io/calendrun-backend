@@ -6,16 +6,18 @@ import {
   getChallengeInstancesByUserId,
 } from "../../db/queries/challenge-instances";
 import { getPerformancesByInstance } from "../../db/queries/performances";
+import { getTableName } from "../../db/table-names";
 
 export const challengesRoute = new Hono();
 
 // GET /api/challenges/templates
 challengesRoute.get("/templates", async (c) => {
   try {
-    const templates = await pool`
-      SELECT * FROM challenge_template
+    const tableName = getTableName("challenge_template");
+    const templates = await pool.unsafe(`
+      SELECT * FROM ${tableName}
       ORDER BY start_date DESC
-    `;
+    `);
     return c.json(templates);
   } catch (error) {
     console.error("Error fetching challenge templates:", error);
@@ -27,11 +29,15 @@ challengesRoute.get("/templates", async (c) => {
 challengesRoute.get("/templates/:id", async (c) => {
   try {
     const id = c.req.param("id");
-    const result = await pool`
-      SELECT * FROM challenge_template
-      WHERE id = ${id}
+    const tableName = getTableName("challenge_template");
+    const result = await pool.unsafe(
+      `
+      SELECT * FROM ${tableName}
+      WHERE id = $1
       LIMIT 1
-    `;
+    `,
+      [id]
+    );
     if (result.length === 0) {
       return c.json({ error: "Challenge template not found" }, 404);
     }

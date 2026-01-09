@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { pool } from "../../db/pool";
+import { getTableName } from "../../db/table-names";
 
 export const runsRoute = new Hono();
 
@@ -38,6 +39,7 @@ runsRoute.get("/", async (c) => {
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const performanceTable = getTableName("performance");
 
     // Deduplicate by (user_id, run_date) keeping the most recent record
     // If instanceId is provided, deduplicate by (instance_id, user_id, run_date)
@@ -45,14 +47,14 @@ runsRoute.get("/", async (c) => {
     if (instanceId) {
       sql = `
         SELECT DISTINCT ON (instance_id, user_id, run_date) *
-        FROM performance
+        FROM ${performanceTable}
         ${whereClause}
         ORDER BY instance_id, user_id, run_date DESC, updated_at DESC
       `;
     } else {
       sql = `
         SELECT DISTINCT ON (user_id, run_date) *
-        FROM performance
+        FROM ${performanceTable}
         ${whereClause}
         ORDER BY user_id, run_date DESC, updated_at DESC
       `;
@@ -70,11 +72,15 @@ runsRoute.get("/", async (c) => {
 runsRoute.get("/:id", async (c) => {
   try {
     const id = c.req.param("id");
-    const result = await pool`
-      SELECT * FROM performance
-      WHERE id = ${id}
+    const performanceTable = getTableName("performance");
+    const result = await pool.unsafe(
+      `
+      SELECT * FROM ${performanceTable}
+      WHERE id = $1
       LIMIT 1
-    `;
+    `,
+      [id]
+    );
     if (result.length === 0) {
       return c.json({ error: "Run not found" }, 404);
     }
