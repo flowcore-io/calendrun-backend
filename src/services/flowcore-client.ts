@@ -1,8 +1,8 @@
 import {
-  DataCoreFetchCommand,
-  EventsFetchCommand,
-  EventsFetchTimeBucketsByNamesCommand,
-  FlowcoreClient,
+    DataCoreFetchCommand,
+    EventsFetchCommand,
+    EventsFetchTimeBucketsByNamesCommand,
+    FlowcoreClient,
 } from "@flowcore/sdk";
 import { env } from "../env";
 
@@ -17,6 +17,23 @@ const client = new FlowcoreClient({
 });
 
 /**
+ * Get the data core name to use
+ * In DEV_MODE, FLOWCORE_DATA_CORE should be set to the dev datacore name (e.g., "calendrun-dev")
+ */
+function getDataCoreName(): string {
+  if (env.DEV_MODE) {
+    // Safety check: ensure we're not accidentally using production datacore
+    if (env.FLOWCORE_DATA_CORE === "calendrun") {
+      throw new Error(
+        "❌ Safety check failed: DEV_MODE is enabled but FLOWCORE_DATA_CORE is set to production datacore 'calendrun'. " +
+          "Set FLOWCORE_DATA_CORE=calendrun-dev in your .env.development file."
+      );
+    }
+  }
+  return env.FLOWCORE_DATA_CORE;
+}
+
+/**
  * Resolve data core name to ID (cached)
  */
 export async function getDataCoreId(): Promise<string> {
@@ -24,18 +41,21 @@ export async function getDataCoreId(): Promise<string> {
     return dataCoreId;
   }
 
+  const dataCoreName = getDataCoreName();
+  const mode = env.DEV_MODE ? "DEV" : "PRODUCTION";
+
   try {
     const command = new DataCoreFetchCommand({
       tenant: env.FLOWCORE_TENANT,
-      dataCore: env.FLOWCORE_DATA_CORE,
+      dataCore: dataCoreName,
     });
     const dataCore = await client.execute(command);
 
     dataCoreId = dataCore.id;
-    console.log(`✅ Resolved data core "${env.FLOWCORE_DATA_CORE}" to ID: ${dataCoreId}`);
+    console.log(`✅ [${mode}] Resolved data core "${dataCoreName}" to ID: ${dataCoreId}`);
     return dataCoreId;
   } catch (error) {
-    console.error(`❌ Failed to resolve data core "${env.FLOWCORE_DATA_CORE}":`, error);
+    console.error(`❌ [${mode}] Failed to resolve data core "${dataCoreName}":`, error);
     throw error;
   }
 }
