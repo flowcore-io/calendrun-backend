@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { env } from "../env";
+import { initializeDevSchema } from "./migrations-dev";
 import { pool } from "./pool";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -57,6 +59,11 @@ export async function initializeSchema() {
     await pool.unsafe(schema);
 
     console.log("✅ Read model schema initialized");
+
+    // If DEV_MODE is enabled, also create dev_ prefixed tables
+    if (env.DEV_MODE) {
+      await initializeDevSchema();
+    }
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("❌ Schema initialization failed:", errorMessage);
