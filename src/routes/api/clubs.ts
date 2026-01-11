@@ -99,7 +99,7 @@ clubsRoute.get("/:id/leaderboard", async (c) => {
         SUM(deduped_p.distance_km) as total_distance_km,
         COUNT(deduped_p.id) as run_count
       FROM ${membershipTable} cm
-      LEFT JOIN ${userTable} u ON u.id = cm.user_id
+      LEFT JOIN "${userTable}" u ON u.id = cm.user_id
       LEFT JOIN ${instanceTable} ci ON ci.user_id = cm.user_id
       LEFT JOIN (
         SELECT DISTINCT ON (user_id, run_date) *

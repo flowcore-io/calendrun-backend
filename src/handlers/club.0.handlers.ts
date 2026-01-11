@@ -101,7 +101,7 @@ export async function handleClubMemberJoined(payload: unknown, eventId: string) 
   if (!userName) {
     const userTable = getTableName("user");
     const userResult = await pool.unsafe(
-      `SELECT name FROM ${userTable}
+      `SELECT name FROM "${userTable}"
       WHERE id = $1
       LIMIT 1`,
       [validated.userId]

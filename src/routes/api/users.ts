@@ -23,7 +23,7 @@ usersRoute.get("/", async (c) => {
       const userTable = getTableName("user");
       const users = await pool.unsafe(
         `SELECT id, name, email, created_at, updated_at
-        FROM ${userTable}
+        FROM "${userTable}"
         WHERE id = ANY($1)
         ORDER BY name ASC NULLS LAST`,
         [userIds]
@@ -35,7 +35,7 @@ usersRoute.get("/", async (c) => {
     const userTable = getTableName("user");
     const users = await pool.unsafe(
       `SELECT id, name, email, created_at, updated_at
-      FROM ${userTable}
+      FROM "${userTable}"
       ORDER BY name ASC NULLS LAST`
     );
     return c.json(users);

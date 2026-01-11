@@ -11,15 +11,15 @@ export async function handleUserCreated(payload: unknown, eventId: string) {
   const userTable = getTableName("user");
 
   await pool.unsafe(
-    `INSERT INTO ${userTable} (
+    `INSERT INTO "${userTable}" (
       id, flowcore_event_id, name, email, created_at, updated_at
     ) VALUES ($1, $2, $3, $4, NOW(), NOW())
     ON CONFLICT (id) DO UPDATE SET
-      name = COALESCE(EXCLUDED.name, ${userTable}.name),
-      email = COALESCE(EXCLUDED.email, ${userTable}.email),
+      name = COALESCE(EXCLUDED.name, "${userTable}".name),
+      email = COALESCE(EXCLUDED.email, "${userTable}".email),
       updated_at = NOW(),
       flowcore_event_id = EXCLUDED.flowcore_event_id
-    WHERE ${userTable}.flowcore_event_id != EXCLUDED.flowcore_event_id`,
+    WHERE "${userTable}".flowcore_event_id != EXCLUDED.flowcore_event_id`,
     [validated.id, eventId, validated.name ?? null, validated.email ?? null]
   );
 }
@@ -54,7 +54,7 @@ export async function handleUserUpdated(payload: unknown, eventId: string) {
   const userTable = getTableName("user");
   // Use postgres template literal with SQL.unsafe for dynamic queries
   await pool.unsafe(
-    `UPDATE ${userTable} SET ${updateFields.join(", ")} WHERE id = $${updateValues.length - 1} AND flowcore_event_id != $${updateValues.length}`,
+    `UPDATE "${userTable}" SET ${updateFields.join(", ")} WHERE id = $${updateValues.length - 1} AND flowcore_event_id != $${updateValues.length}`,
     updateValues as never[]
   );
 }
