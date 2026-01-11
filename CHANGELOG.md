@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.1](https://github.com/flowcore-io/calendrun-backend/compare/v1.6.0...v1.6.1) (2026-01-11)
+
+
+### Bug Fixes
+
+* update SQL queries to use quoted table names ([16c1587](https://github.com/flowcore-io/calendrun-backend/commit/16c1587b88b10a0f8d0dbce337ac80b619add85b))
+
 ## [1.6.0](https://github.com/flowcore-io/calendrun-backend/compare/v1.5.2...v1.6.0) (2026-01-09)
 
 
